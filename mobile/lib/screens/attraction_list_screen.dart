@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/attraction.dart';
 import '../services/attraction_service.dart';
+import 'attraction_detail_screen.dart';
 
 class AttractionListScreen extends StatefulWidget {
   const AttractionListScreen({super.key});
@@ -88,8 +89,12 @@ class _AttractionCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${attraction.name} selected')),
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (context) {
+                return AttractionDetailScreen(attractionId: attraction.id);
+              },
+            ),
           );
         },
         child: Padding(
