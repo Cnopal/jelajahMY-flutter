@@ -38,7 +38,7 @@ class _AttractionListScreenState extends State<AttractionListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('JelajahMY'), centerTitle: true),
+      appBar: AppBar(title: const Text('Attractions'), centerTitle: true),
       body: FutureBuilder<List<Attraction>>(
         future: _attractionsFuture,
         builder: (context, snapshot) {
