@@ -14,6 +14,7 @@ const authRoutes = require('./routes/authRoutes');
 const bookmarkRoutes = require(
   './routes/bookmarkRoutes',
 );
+const tripRoutes = require('./routes/tripRoutes');
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.use("/api/states", stateRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/attractions", attractionRoutes);
 app.use('/api/bookmarks', bookmarkRoutes);
+app.use('/api/trips', tripRoutes);
 
 // Handle unknown endpoints
 app.use(notFound);
