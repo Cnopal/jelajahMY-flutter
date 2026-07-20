@@ -5,6 +5,7 @@ import '../services/attraction_service.dart';
 import '../widgets/weather_section.dart';
 import 'attraction_map_screen.dart';
 import '../widgets/bookmark_button.dart';
+import '../widgets/review_section.dart';
 
 class AttractionDetailScreen extends StatefulWidget {
   const AttractionDetailScreen({required this.attractionId, super.key});
@@ -190,6 +191,15 @@ class _AttractionDetailContent extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           BookmarkButton(attractionId: attraction.id),
+          const SizedBox(height: 28),
+          Text(
+            'Reviews & Ratings',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ReviewSection(attractionId: attraction.id),
         ],
       ),
     );
