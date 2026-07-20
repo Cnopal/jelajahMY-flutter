@@ -4,6 +4,7 @@ import '../models/attraction.dart';
 import '../services/attraction_service.dart';
 import '../widgets/weather_section.dart';
 import 'attraction_map_screen.dart';
+import '../widgets/bookmark_button.dart';
 
 class AttractionDetailScreen extends StatefulWidget {
   const AttractionDetailScreen({required this.attractionId, super.key});
@@ -187,6 +188,8 @@ class _AttractionDetailContent extends StatelessWidget {
               label: const Text('View on Map'),
             ),
           ),
+          const SizedBox(height: 12),
+          BookmarkButton(attractionId: attraction.id),
         ],
       ),
     );
