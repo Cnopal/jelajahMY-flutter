@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
@@ -19,9 +20,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   final AuthService _authService = AuthService();
 
+  final ImagePicker _imagePicker = ImagePicker();
+
   late Future<AppUser> _userFuture;
 
   bool _isSigningOut = false;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -48,6 +52,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (updatedUser != null && mounted) {
       _refreshProfile();
+    }
+  }
+
+  Future<void> _pickAndUploadProfileImage(AppUser user) async {
+    try {
+      final selectedImage = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
+
+      if (selectedImage == null || !mounted) {
+        return;
+      }
+
+      setState(() {
+        _isUploadingImage = true;
+      });
+
+      final updatedUser = await _userService.uploadProfileImage(
+        imagePath: selectedImage.path,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _userFuture = Future<AppUser>.value(updatedUser);
+
+        _isUploadingImage = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile picture updated successfully.')),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isUploadingImage = false;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 
@@ -141,7 +194,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(20),
                 children: [
-                  _ProfileHeader(user: user),
+                  _ProfileHeader(
+                    user: user,
+                    isUploadingImage: _isUploadingImage,
+                    onChangePhoto: _isUploadingImage
+                        ? null
+                        : () {
+                            _pickAndUploadProfileImage(user);
+                          },
+                  ),
                   const SizedBox(height: 16),
                   Card(
                     child: Column(
@@ -213,9 +274,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.user});
+  const _ProfileHeader({
+    required this.user,
+    required this.isUploadingImage,
+    required this.onChangePhoto,
+  });
 
   final AppUser user;
+  final bool isUploadingImage;
+  final VoidCallback? onChangePhoto;
 
   @override
   Widget build(BuildContext context) {
@@ -226,18 +293,30 @@ class _ProfileHeader extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            CircleAvatar(
-              radius: 48,
-              backgroundColor: theme.colorScheme.primaryContainer,
-              child: Text(
-                _getInitial(user.name),
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  color: theme.colorScheme.onPrimaryContainer,
-                  fontWeight: FontWeight.bold,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _ProfileAvatar(user: user, isLoading: isUploadingImage),
+                Positioned(
+                  right: -4,
+                  bottom: -4,
+                  child: Material(
+                    color: theme.colorScheme.primary,
+                    shape: const CircleBorder(),
+                    elevation: 3,
+                    child: IconButton(
+                      onPressed: onChangePhoto,
+                      tooltip: 'Change profile picture',
+                      icon: Icon(
+                        Icons.camera_alt_outlined,
+                        color: theme.colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Text(
               user.name,
               textAlign: TextAlign.center,
@@ -247,20 +326,97 @@ class _ProfileHeader extends StatelessWidget {
             ),
             const SizedBox(height: 5),
             Text(user.email, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: onChangePhoto,
+              icon: const Icon(Icons.add_photo_alternate_outlined),
+              label: Text(
+                isUploadingImage
+                    ? 'Uploading image...'
+                    : 'Change profile picture',
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+}
 
-  String _getInitial(String name) {
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar({required this.user, required this.isLoading});
+
+  final AppUser user;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final imageUrl = user.profileImageUrl;
+
+    return Container(
+      width: 104,
+      height: 104,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: theme.colorScheme.primaryContainer,
+      ),
+      child: ClipOval(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (imageUrl != null && imageUrl.trim().isNotEmpty)
+              Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) {
+                    return child;
+                  }
+
+                  return const Center(child: CircularProgressIndicator());
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return _ProfileInitial(name: user.name);
+                },
+              )
+            else
+              _ProfileInitial(name: user.name),
+            if (isLoading)
+              Container(
+                color: Colors.black45,
+                alignment: Alignment.center,
+                child: const CircularProgressIndicator(color: Colors.white),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileInitial extends StatelessWidget {
+  const _ProfileInitial({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     final trimmedName = name.trim();
 
-    if (trimmedName.isEmpty) {
-      return 'J';
-    }
+    final initial = trimmedName.isEmpty ? 'J' : trimmedName[0].toUpperCase();
 
-    return trimmedName[0].toUpperCase();
+    return Center(
+      child: Text(
+        initial,
+        style: theme.textTheme.headlineLarge?.copyWith(
+          color: theme.colorScheme.onPrimaryContainer,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
   }
 }
 

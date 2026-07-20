@@ -4,6 +4,10 @@ const {
   firebaseAdminAuth,
 } = require('../config/firebaseAdmin');
 
+const {
+  cloudinary,
+} = require('../config/cloudinary');
+
 function normaliseName({
   bodyName,
   tokenName,
@@ -24,6 +28,52 @@ function normaliseName({
   }
 
   return email.split('@')[0];
+}
+
+function uploadBufferToCloudinary(
+  buffer,
+  firebaseUid,
+) {
+  return new Promise((resolve, reject) => {
+    const uploadStream =
+      cloudinary.uploader.upload_stream(
+        {
+          resource_type: 'image',
+          folder: 'jelajahmy/profile-images',
+          public_id: firebaseUid,
+          overwrite: true,
+          invalidate: true,
+
+          transformation: [
+            {
+              width: 1000,
+              height: 1000,
+              crop: 'limit',
+              quality: 'auto',
+            },
+          ],
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+
+          if (!result?.secure_url) {
+            reject(
+              new Error(
+                'Cloudinary did not return an image URL.',
+              ),
+            );
+            return;
+          }
+
+          resolve(result);
+        },
+      );
+
+    uploadStream.end(buffer);
+  });
 }
 
 function normaliseOptionalText(
@@ -426,8 +476,105 @@ async function updateAuthenticatedUserProfile(
   }
 }
 
+async function uploadAuthenticatedUserProfileImage(
+  request,
+  response,
+  next,
+) {
+    
+  try {
+    const { uid } = request.firebaseUser;
+
+    if (!request.file?.buffer) {
+      return response.status(400).json({
+        success: false,
+        message:
+          'Please select a profile image.',
+      });
+    }
+    
+
+    const [existingUsers] =
+      await pool.execute(
+        `
+          SELECT id
+          FROM users
+          WHERE firebase_uid = ?
+          LIMIT 1
+        `,
+        [uid],
+      );
+
+    if (existingUsers.length === 0) {
+      return response.status(404).json({
+        success: false,
+        message:
+          'User has not been synchronised with the database.',
+      });
+    }
+
+    const uploadResult =
+      await uploadBufferToCloudinary(
+        request.file.buffer,
+        uid,
+      );
+
+    await pool.execute(
+      `
+        UPDATE users
+        SET profile_image_url = ?
+        WHERE firebase_uid = ?
+      `,
+      [
+        uploadResult.secure_url,
+        uid,
+      ],
+    );
+
+    const [updatedUserRows] =
+      await pool.execute(
+        `
+          SELECT
+            id,
+            firebase_uid,
+            name,
+            email,
+            phone,
+            nationality,
+            profile_image_url,
+            created_at,
+            updated_at
+          FROM users
+          WHERE firebase_uid = ?
+          LIMIT 1
+        `,
+        [uid],
+      );
+
+    return response.status(200).json({
+      success: true,
+      message:
+        'Profile image updated successfully.',
+      data: {
+        ...updatedUserRows[0],
+        email_verified:
+          request.firebaseUser
+            .email_verified === true,
+      },
+    });
+  } catch (error) {
+    console.error(
+      'Profile image upload failed:',
+      error.message,
+    );
+
+    return next(error);
+  }
+}
+
 module.exports = {
   getAuthenticatedUser,
   syncFirebaseUser,
   updateAuthenticatedUserProfile,
+  uploadAuthenticatedUserProfileImage,
 };

@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 
 import '../config/api_config.dart';
 import '../models/app_user.dart';
@@ -151,6 +153,76 @@ class BackendUserService {
     }
 
     await user.reload();
+
+    return AppUser.fromJson(Map<String, dynamic>.from(data));
+  }
+
+  Future<AppUser> uploadProfileImage({required String imagePath}) async {
+    final user = _firebaseAuth.currentUser;
+
+    if (user == null) {
+      throw const BackendUserException(
+        'No authenticated Firebase user was found.',
+      );
+    }
+
+    final idToken = await _getIdToken(user);
+
+    final mimeType = lookupMimeType(imagePath);
+
+    const allowedMimeTypes = <String>{'image/jpeg', 'image/png', 'image/webp'};
+
+    if (mimeType == null || !allowedMimeTypes.contains(mimeType)) {
+      throw const BackendUserException(
+        'Only JPEG, PNG and WebP images are allowed.',
+      );
+    }
+
+    final mimeParts = mimeType.split('/');
+
+    if (mimeParts.length != 2) {
+      throw const BackendUserException('Unable to determine the image format.');
+    }
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('${ApiConfig.baseUrl}/api/auth/profile-image'),
+    );
+
+    request.headers.addAll({
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $idToken',
+    });
+
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'image',
+        imagePath,
+        contentType: MediaType(mimeParts[0], mimeParts[1]),
+      ),
+    );
+
+    final streamedResponse = await _httpClient
+        .send(request)
+        .timeout(const Duration(seconds: 40));
+
+    final response = await http.Response.fromStream(streamedResponse);
+
+    final payload = _decodeResponse(response);
+
+    if (response.statusCode != 200) {
+      throw BackendUserException(
+        payload['message']?.toString() ?? 'Unable to upload the profile image.',
+      );
+    }
+
+    final data = payload['data'];
+
+    if (data is! Map) {
+      throw const BackendUserException(
+        'The backend returned invalid user data.',
+      );
+    }
 
     return AppUser.fromJson(Map<String, dynamic>.from(data));
   }
