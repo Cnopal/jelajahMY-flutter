@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "864367406132",
+    "project_id": "jelajahmy-ahmadnaufal",
+    "storage_bucket": "jelajahmy-ahmadnaufal.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:864367406132:android:64827371a6c6f55ed72e61",
+        "android_client_info": {
+          "package_name": "com.jelajahmy.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhZs1lPgMGjCjmvRh02a59jZY5m6G0Co0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
