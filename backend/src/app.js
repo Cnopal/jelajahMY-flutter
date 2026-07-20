@@ -10,6 +10,7 @@ const databaseRoutes = require("./routes/databaseRoutes");
 const stateRoutes = require("./routes/stateRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const attractionRoutes = require("./routes/attractionRoutes");
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.get("/", (req, res) => {
 });
 
 // API routes
+app.use('/api/auth', authRoutes);
 app.use("/api/health", healthRoutes);
 app.use("/api/database-health", databaseRoutes);
 app.use("/api/states", stateRoutes);
