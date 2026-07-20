@@ -103,6 +103,58 @@ class BackendUserService {
     return AppUser.fromJson(Map<String, dynamic>.from(data));
   }
 
+  Future<AppUser> updateProfile({
+    required String name,
+    String? phone,
+    String? nationality,
+  }) async {
+    final user = _firebaseAuth.currentUser;
+
+    if (user == null) {
+      throw const BackendUserException(
+        'No authenticated Firebase user was found.',
+      );
+    }
+
+    final idToken = await _getIdToken(user);
+
+    final response = await _httpClient
+        .put(
+          Uri.parse('${ApiConfig.baseUrl}/api/auth/profile'),
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $idToken',
+          },
+          body: jsonEncode({
+            'name': name.trim(),
+            'phone': _normaliseOptionalValue(phone),
+            'nationality': _normaliseOptionalValue(nationality),
+          }),
+        )
+        .timeout(const Duration(seconds: 20));
+
+    final payload = _decodeResponse(response);
+
+    if (response.statusCode != 200) {
+      throw BackendUserException(
+        payload['message']?.toString() ?? 'Unable to update the profile.',
+      );
+    }
+
+    final data = payload['data'];
+
+    if (data is! Map) {
+      throw const BackendUserException(
+        'The backend returned invalid user data.',
+      );
+    }
+
+    await user.reload();
+
+    return AppUser.fromJson(Map<String, dynamic>.from(data));
+  }
+
   Future<String> _getIdToken(User user) async {
     final tokenResult = await user.getIdTokenResult();
     final idToken = tokenResult.token;
@@ -134,6 +186,16 @@ class BackendUserService {
     throw const BackendUserException(
       'The backend returned an invalid response.',
     );
+  }
+
+  String? _normaliseOptionalValue(String? value) {
+    final trimmedValue = value?.trim();
+
+    if (trimmedValue == null || trimmedValue.isEmpty) {
+      return null;
+    }
+
+    return trimmedValue;
   }
 }
 

@@ -3,6 +3,7 @@ const express = require('express');
 const {
   getAuthenticatedUser,
   syncFirebaseUser,
+  updateAuthenticatedUserProfile,
 } = require('../controllers/authController');
 
 const {
@@ -23,6 +24,12 @@ router.get(
   '/me',
   authenticateFirebaseUser,
   getAuthenticatedUser,
+);
+
+router.put(
+  '/profile',
+  authenticateFirebaseUser,
+  updateAuthenticatedUserProfile,
 );
 
 module.exports = router;
