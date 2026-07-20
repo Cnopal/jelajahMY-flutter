@@ -4,6 +4,7 @@ import 'attraction_list_screen.dart';
 import 'bookmark_screen.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
+import 'trip_list_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -20,6 +21,7 @@ class _MainShellState extends State<MainShell> {
   static const List<String> _titles = [
     'JelajahMY',
     'Attractions',
+    'Trips',
     'Bookmarks',
     'Profile',
   ];
@@ -35,6 +37,7 @@ class _MainShellState extends State<MainShell> {
         },
       ),
       const AttractionListScreen(),
+      const TripListScreen(),
       const BookmarkScreen(),
       const ProfileScreen(),
     ];
@@ -53,7 +56,7 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _selectedIndex == 1
+      appBar: _selectedIndex == 1 || _selectedIndex == 2 || _selectedIndex == 3
           ? null
           : AppBar(title: Text(_titles[_selectedIndex]), centerTitle: true),
       body: IndexedStack(index: _selectedIndex, children: _screens),
@@ -70,6 +73,11 @@ class _MainShellState extends State<MainShell> {
             icon: Icon(Icons.explore_outlined),
             selectedIcon: Icon(Icons.explore),
             label: 'Attractions',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.luggage_outlined),
+            selectedIcon: Icon(Icons.luggage),
+            label: 'Trips',
           ),
           NavigationDestination(
             icon: Icon(Icons.bookmark_outline),
