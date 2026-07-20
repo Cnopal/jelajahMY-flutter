@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/attraction.dart';
 import '../services/attraction_service.dart';
 import '../widgets/weather_section.dart';
+import 'attraction_map_screen.dart';
 
 class AttractionDetailScreen extends StatefulWidget {
   const AttractionDetailScreen({required this.attractionId, super.key});
@@ -167,10 +168,23 @@ class _AttractionDetailContent extends StatelessWidget {
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: null,
+            child: FilledButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) {
+                      return AttractionMapScreen(
+                        attractionName: attraction.name,
+                        latitude: attraction.latitude,
+                        longitude: attraction.longitude,
+                        address: attraction.address,
+                      );
+                    },
+                  ),
+                );
+              },
               icon: const Icon(Icons.map_outlined),
-              label: const Text('Interactive Map Coming Soon'),
+              label: const Text('View on Map'),
             ),
           ),
         ],
