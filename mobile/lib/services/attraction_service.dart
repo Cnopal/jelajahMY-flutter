@@ -8,19 +8,34 @@ import '../models/attraction.dart';
 class AttractionService {
   const AttractionService();
 
-  Future<List<Attraction>> getAttractions() async {
-    final uri = Uri.parse('${ApiConfig.baseUrl}/api/attractions');
+  Future<List<Attraction>> getAttractions({
+    String search = '',
+    String? state,
+    String? category,
+  }) async {
+    final queryParameters = <String, String>{};
+
+    final trimmedSearch = search.trim();
+
+    if (trimmedSearch.isNotEmpty) {
+      queryParameters['search'] = trimmedSearch;
+    }
+
+    if (state != null && state.trim().isNotEmpty) {
+      queryParameters['state'] = state.trim();
+    }
+
+    if (category != null && category.trim().isNotEmpty) {
+      queryParameters['category'] = category.trim();
+    }
+
+    final uri = Uri.parse('${ApiConfig.baseUrl}/api/attractions').replace(
+      queryParameters: queryParameters.isEmpty ? null : queryParameters,
+    );
 
     final response = await http
         .get(uri, headers: const {'Accept': 'application/json'})
         .timeout(const Duration(seconds: 15));
-
-    if (response.statusCode != 200) {
-      throw Exception(
-        'Failed to load attractions. '
-        'Status code: ${response.statusCode}',
-      );
-    }
 
     final decodedBody = jsonDecode(response.body);
 
@@ -28,9 +43,9 @@ class AttractionService {
       throw const FormatException('Invalid response received from server.');
     }
 
-    if (decodedBody['success'] != true) {
+    if (response.statusCode != 200 || decodedBody['success'] != true) {
       throw Exception(
-        decodedBody['message']?.toString() ?? 'The server returned an error.',
+        decodedBody['message']?.toString() ?? 'Failed to load attractions.',
       );
     }
 
